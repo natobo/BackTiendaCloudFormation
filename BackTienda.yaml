@@ -171,14 +171,17 @@ Parameters:
   EnvironmentName:
     Type: String
     Default: Prod
+  RegionName:
+    Type: String
+    Default: us-east-1
 # Muestra los recursos creados como Outputs del Stack
 Outputs:
-  JavascriptFunction:
+  JavascriptFunctionName:
     Description: AWS Lambda Javascript Function
     Value: !Ref LambdaFunction
   APIGatewayRestAPIOutput:
-    Description: API Gateway declared inside the template
-    Value: !Ref APIGatewayRestAPI
-  DynamoDBTableOutput:
+    Description: Invocation link of the Api Gateway
+    Value: !Sub https://${APIGatewayRestAPI}.execute-api.${RegionName}.amazonaws.com/Prod/ 
+  DynamoDBTableName:
     Description: DynamoDBTable created inside the template
     Value: !Ref DynamoDBTable

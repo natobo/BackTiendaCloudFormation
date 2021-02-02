@@ -1,0 +1,332 @@
+{
+	"info": {
+		"_postman_id": "12d79a36-8e35-4b78-bf97-fd76e9e4a838",
+		"name": "Test-Back-Tienda-nicolas-tobo",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "create",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"operation\": \"create\",\r\n    \"tableName\": \"Dynamo_api-lambda-db-tiendaback-nicotobo\",\r\n    \"payload\": {\r\n        \"Item\": {\r\n            \"id\": \"1\",\r\n            \"precio\": 100,\r\n            \"nombre\": \"carne\"\r\n        }\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
+					"protocol": "https",
+					"host": [
+						"rckwa2i3r9",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"Prod",
+						"Lambda_api-lambda-db-tiendaback-nicotobo"
+					]
+				},
+				"description": "Crea un  producto de la tienda en este caso pan con un precio de 100"
+			},
+			"response": []
+		},
+		{
+			"name": "read",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \r\n  \"operation\": \"read\",\r\n  \"tableName\": \"Dynamo_api-lambda-db-tiendaback-nicotobo\",\r\n  \"payload\": {\"Key\":\r\n            { \"id\":\"1\"}\r\n        }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
+					"protocol": "https",
+					"host": [
+						"rckwa2i3r9",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"Prod",
+						"Lambda_api-lambda-db-tiendaback-nicotobo"
+					]
+				},
+				"description": "Hace una petición para leer el objeto con el id 1"
+			},
+			"response": []
+		},
+		{
+			"name": "create2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"operation\": \"create\",\r\n    \"tableName\": \"Dynamo_api-lambda-db-tiendaback-nicotobo\",\r\n    \"payload\": {\r\n        \"Item\": {\r\n            \"id\": \"2\",\r\n            \"precio\": 50,\r\n            \"nombre\": \"pan\"\r\n        }\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
+					"protocol": "https",
+					"host": [
+						"rckwa2i3r9",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"Prod",
+						"Lambda_api-lambda-db-tiendaback-nicotobo"
+					]
+				},
+				"description": "Crea un segundo objeto llamado pan con un precio de 50"
+			},
+			"response": []
+		},
+		{
+			"name": "list",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"operation\": \"list\",\r\n    \"tableName\": \"Dynamo_api-lambda-db-tiendaback-nicotobo\",\r\n    \"payload\": {}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
+					"protocol": "https",
+					"host": [
+						"rckwa2i3r9",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"Prod",
+						"Lambda_api-lambda-db-tiendaback-nicotobo"
+					]
+				},
+				"description": "Lista todos los objetos creados en la dynamoDB en este momento"
+			},
+			"response": []
+		},
+		{
+			"name": "update",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"operation\": \"update\",\r\n    \"tableName\": \"Dynamo_api-lambda-db-tiendaback-nicotobo\",\r\n    \"payload\": {\r\n        \"Key\": {\r\n            \"id\": \"1\"\r\n        },\r\n        \"UpdateExpression\": \"set nombre=:o\",\r\n        \"ExpressionAttributeValues\": {\r\n            \":o\": \"Leche\"\r\n        }\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
+					"protocol": "https",
+					"host": [
+						"rckwa2i3r9",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"Prod",
+						"Lambda_api-lambda-db-tiendaback-nicotobo"
+					]
+				},
+				"description": "Actualiza el objeto #1 cambiando el nombre de \"carne\" a \"Leche\", notar que se puede alterar el campo de \"UpdateExpression\" al lado de set para modificar o actualizar un atributo en específico "
+			},
+			"response": []
+		},
+		{
+			"name": "delete",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"operation\": \"delete\",\r\n    \"tableName\": \"Dynamo_api-lambda-db-tiendaback-nicotobo\",\r\n    \"payload\": {\"Key\":\r\n            { \"id\":\"1\"}\r\n        }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
+					"protocol": "https",
+					"host": [
+						"rckwa2i3r9",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"Prod",
+						"Lambda_api-lambda-db-tiendaback-nicotobo"
+					]
+				},
+				"description": "Borra el objeto con el id dado, en este caso el objeto con el id 1"
+			},
+			"response": []
+		},
+		{
+			"name": "delete2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"operation\": \"delete\",\r\n    \"tableName\": \"Dynamo_api-lambda-db-tiendaback-nicotobo\",\r\n    \"payload\": {\"Key\":\r\n            { \"id\":\"2\"}\r\n        }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
+					"protocol": "https",
+					"host": [
+						"rckwa2i3r9",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"Prod",
+						"Lambda_api-lambda-db-tiendaback-nicotobo"
+					]
+				},
+				"description": "Borra el objeto con el id dado, en este caso el objeto con el id 2"
+			},
+			"response": []
+		}
+	]
+}
