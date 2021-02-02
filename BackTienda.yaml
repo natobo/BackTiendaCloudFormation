@@ -181,7 +181,7 @@ Outputs:
     Value: !Ref LambdaFunction
   APIGatewayRestAPIOutput:
     Description: Invocation link of the Api Gateway
-    Value: !Sub https://${APIGatewayRestAPI}.execute-api.${RegionName}.amazonaws.com/Prod/ 
+    Value: !Sub https://${APIGatewayRestAPI}.execute-api.${RegionName}.amazonaws.com/Prod/${LambdaFuncName}
   DynamoDBTableName:
     Description: DynamoDBTable created inside the template
     Value: !Ref DynamoDBTable

@@ -33,18 +33,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
-					"protocol": "https",
+					"raw": "{{url_API_Postman}}",
 					"host": [
-						"rckwa2i3r9",
-						"execute-api",
-						"us-east-1",
-						"amazonaws",
-						"com"
-					],
-					"path": [
-						"Prod",
-						"Lambda_api-lambda-db-tiendaback-nicotobo"
+						"{{url_API_Postman}}"
 					]
 				},
 				"description": "Crea un  producto de la tienda en este caso pan con un precio de 100"
@@ -79,18 +70,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
-					"protocol": "https",
+					"raw": "{{url_API_Postman}}",
 					"host": [
-						"rckwa2i3r9",
-						"execute-api",
-						"us-east-1",
-						"amazonaws",
-						"com"
-					],
-					"path": [
-						"Prod",
-						"Lambda_api-lambda-db-tiendaback-nicotobo"
+						"{{url_API_Postman}}"
 					]
 				},
 				"description": "Hace una petición para leer el objeto con el id 1"
@@ -125,18 +107,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
-					"protocol": "https",
+					"raw": "{{url_API_Postman}}",
 					"host": [
-						"rckwa2i3r9",
-						"execute-api",
-						"us-east-1",
-						"amazonaws",
-						"com"
-					],
-					"path": [
-						"Prod",
-						"Lambda_api-lambda-db-tiendaback-nicotobo"
+						"{{url_API_Postman}}"
 					]
 				},
 				"description": "Crea un segundo objeto llamado pan con un precio de 50"
@@ -172,18 +145,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
-					"protocol": "https",
+					"raw": "{{url_API_Postman}}",
 					"host": [
-						"rckwa2i3r9",
-						"execute-api",
-						"us-east-1",
-						"amazonaws",
-						"com"
-					],
-					"path": [
-						"Prod",
-						"Lambda_api-lambda-db-tiendaback-nicotobo"
+						"{{url_API_Postman}}"
 					]
 				},
 				"description": "Lista todos los objetos creados en la dynamoDB en este momento"
@@ -218,18 +182,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
-					"protocol": "https",
+					"raw": "{{url_API_Postman}}",
 					"host": [
-						"rckwa2i3r9",
-						"execute-api",
-						"us-east-1",
-						"amazonaws",
-						"com"
-					],
-					"path": [
-						"Prod",
-						"Lambda_api-lambda-db-tiendaback-nicotobo"
+						"{{url_API_Postman}}"
 					]
 				},
 				"description": "Actualiza el objeto #1 cambiando el nombre de \"carne\" a \"Leche\", notar que se puede alterar el campo de \"UpdateExpression\" al lado de set para modificar o actualizar un atributo en específico "
@@ -264,18 +219,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
-					"protocol": "https",
+					"raw": "{{url_API_Postman}}",
 					"host": [
-						"rckwa2i3r9",
-						"execute-api",
-						"us-east-1",
-						"amazonaws",
-						"com"
-					],
-					"path": [
-						"Prod",
-						"Lambda_api-lambda-db-tiendaback-nicotobo"
+						"{{url_API_Postman}}"
 					]
 				},
 				"description": "Borra el objeto con el id dado, en este caso el objeto con el id 1"
@@ -310,18 +256,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://rckwa2i3r9.execute-api.us-east-1.amazonaws.com/Prod/Lambda_api-lambda-db-tiendaback-nicotobo",
-					"protocol": "https",
+					"raw": "{{url_API_Postman}}",
 					"host": [
-						"rckwa2i3r9",
-						"execute-api",
-						"us-east-1",
-						"amazonaws",
-						"com"
-					],
-					"path": [
-						"Prod",
-						"Lambda_api-lambda-db-tiendaback-nicotobo"
+						"{{url_API_Postman}}"
 					]
 				},
 				"description": "Borra el objeto con el id dado, en este caso el objeto con el id 2"
