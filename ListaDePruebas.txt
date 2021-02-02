@@ -1,0 +1,23 @@
+Este es un archivo con peticiones de prueba para postman
+
+{ "operation": "create",
+  "tableName": "Dynamo_api-lambda-db",
+  "payload": {"Item":
+            { "id":"1",
+            "Precio":100,
+            "nombre":"carne"}
+        }
+    
+}
+{ "operation": "read",
+  "tableName": "Dynamo_api-lambda-db",
+  "payload": {"Key":
+            { "id":"1"}
+        }
+}
+{ "operation": "read",
+  "tableName": "Dynamo_api-lambda-db",
+  "payload": {"Key":
+            { "id":"1"}
+        }
+}

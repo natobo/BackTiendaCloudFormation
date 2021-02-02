@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  # Funcion Lambda que a partir de un post con parametros de una operacion realiza CRUD de los productos
+  LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+      # Codigo JS que maneja un crud a partir de peticiones Post y un parametro "operation"
+        ZipFile: |
+          console.log('Loading DynamoDB Lambda function');
+          var AWS = require('aws-sdk');
+          var dynamo = new AWS.DynamoDB.DocumentClient();
+          exports.handler = function(event, context, callback) {
+          //console.log('Received event:', JSON.stringify(event, null, 2));
+          var operation = event.operation;
+          if (event.tableName) {
+            event.payload.TableName = event.tableName;
+          }
+          switch (operation) {
+                case 'create':
+                    dynamo.put(event.payload, callback);
+                    break;
+                case 'read':
+                    dynamo.get(event.payload, callback);
+                    break;
+                case 'update':
+                    dynamo.update(event.payload, callback);
+                    break;
+                case 'delete':
+                    dynamo.delete(event.payload, callback);
+                    break;
+                case 'list':
+                    dynamo.scan(event.payload, callback);
+                    break;
+                default:
+                    callback('Unknown operation: ${operation}');
+          }
+          };
+      FunctionName:
+        Ref: LambdaFuncName
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Role: !GetAtt IAMRole.Arn
+    DependsOn:
+      - DynamoDBTable
+  #Configuracion de la dynamoDB    
+  DynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        Ref: DynamoDBTableName
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: '5'
+        WriteCapacityUnits: '5'
+    DependsOn:
+      - IAMRole
+  # Declaracion del API Gateway    
+  APIGatewayRestAPI:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name:
+        Ref: APIName
+    DependsOn:
+      - LambdaFunction
+  # Declaracion de los recursos del api gateway    
+  APIGatewayResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref APIGatewayRestAPI
+      ParentId: !GetAtt
+        - APIGatewayRestAPI
+        - RootResourceId
+      PathPart:
+        Ref: LambdaFuncName
+    DependsOn:
+      - APIGatewayRestAPI
+  # Declaracion del metodo POST     
+  APIGatewayMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref APIGatewayRestAPI
+      ResourceId: !Ref APIGatewayResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      MethodResponses:
+        - StatusCode: 200
+      Integration:
+        Type: AWS
+        IntegrationResponses:
+          - StatusCode: 200
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - >-
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFuncNameArn}/invocations
+          - LambdaFuncNameArn: !GetAtt LambdaFunction.Arn
+    DependsOn:
+      - APIGatewayResource
+  # Declaracion de instrucciones de despliegue   
+  APIGatewayDeployment:
+    Type: 'AWS::ApiGateway::Deployment'
+    Properties:
+      RestApiId: !Ref APIGatewayRestAPI
+      StageName:
+        Ref: EnvironmentName
+    DependsOn:
+      - APIGatewayMethod
+  # Declaracion de los permisos de la funcion lambda    
+  APIGatewayPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+    DependsOn:
+      - APIGatewayDeployment
+  # Declaracion del rol IAM para que la función lambda pueda escribir sobre la DynamoDB    
+  IAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: Policy_api-lambda-db
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:BatchWriteItem'
+                  - 'dynamodb:TagResource'
+                  - 'dynamodb:UntagResource'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:UpdateItem'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+#Parametros dados por el template
+Parameters:
+  LambdaFuncName:
+    Type: String
+    Default: Lambda_api-lambda-db-tiendaback-nicotobo
+  DynamoDBTableName:
+    Type: String
+    Default: Dynamo_api-lambda-db-tiendaback-nicotobo
+  APIName:
+    Type: String
+    Default: API_api-lambda-db-tiendaback-nicotobo
+  EnvironmentName:
+    Type: String
+    Default: Prod
+# Muestra los recursos creados como Outputs del Stack
+Outputs:
+  JavascriptFunction:
+    Description: AWS Lambda Javascript Function
+    Value: !Ref LambdaFunction
+  APIGatewayRestAPIOutput:
+    Description: API Gateway declared inside the template
+    Value: !Ref APIGatewayRestAPI
+  DynamoDBTableOutput:
+    Description: DynamoDBTable created inside the template
+    Value: !Ref DynamoDBTable
