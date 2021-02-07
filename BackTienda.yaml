@@ -80,7 +80,7 @@ Resources:
         Ref: LambdaFuncName
     DependsOn:
       - APIGatewayRestAPI
-  # Declaracion del metodo POST     
+  # Declaracion del metodo POST y dentro de este metodo se agregan lo headers para permitir el flujo de CORS
   APIGatewayMethod:
     Type: 'AWS::ApiGateway::Method'
     Properties:
@@ -89,16 +89,55 @@ Resources:
       HttpMethod: POST
       AuthorizationType: NONE
       MethodResponses:
-        - StatusCode: 200
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Origin: false
       Integration:
         Type: AWS
         IntegrationResponses:
-          - StatusCode: 200
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
         IntegrationHttpMethod: POST
         Uri: !Sub
           - >-
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFuncNameArn}/invocations
           - LambdaFuncNameArn: !GetAtt LambdaFunction.Arn
+    DependsOn:
+      - APIGatewayResource
+  # Declaracion del metodo OPTIONS que habilita CORS    
+  OptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref APIGatewayRestAPI
+      ResourceId: !Ref APIGatewayResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
     DependsOn:
       - APIGatewayResource
   # Declaracion de instrucciones de despliegue   
@@ -119,7 +158,7 @@ Resources:
       Principal: apigateway.amazonaws.com
     DependsOn:
       - APIGatewayDeployment
-  # Declaracion del rol IAM para que la función lambda pueda escribir sobre la DynamoDB    
+  # Declaracion del rol IAM para que la funci��n lambda pueda escribir sobre la DynamoDB    
   IAMRole:
     Type: 'AWS::IAM::Role'
     Properties:
