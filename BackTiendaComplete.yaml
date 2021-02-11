@@ -163,7 +163,7 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: "access-identity-stack-tienda-nicolas-tobo.demo"  
-  # Distribucion de cloudformation
+  # Distribucion de cloudfront
   TiendaDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -171,7 +171,7 @@ Resources:
         WebACLId:
           Fn::GetAtt: ProjectACL.Arn
         Origins:
-        - DomainName: !Sub "stack-tienda-nicolas-tobo.demo.s3.${AWS::Region}.amazonaws.com"
+        - DomainName: !Sub "productos.demo.s3.${AWS::Region}.amazonaws.com"
           S3OriginConfig:
             OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${WebAppBucketOriginAccessIdentity}"
           Id: webuiorigin
