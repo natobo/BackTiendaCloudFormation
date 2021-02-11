@@ -49,18 +49,127 @@ Resources:
     Properties:
       Domain: !Ref CognitoDomain
       UserPoolId: !Ref UserPool
+   # WAF - ACL
+  ProjectACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: waf-stack-tienda-nicolas-tobo-web
+      Scope: CLOUDFRONT
+      Description:
+        Fn::Sub: "WebACL para el proyecto stack-tienda-nicolas-tobo"
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: stack-tienda-nicolas-tobo-metricacl
+      Rules:
+        - Name: CommonRuleSet
+          Priority: 0
+          OverrideAction:
+            Count: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CommonRuleSetMetric
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+              ExcludedRules: []
+        - Name: SQLiRuleSet
+          Priority: 1
+          OverrideAction:
+            Count: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: SQLiRuleSetMetric
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+              ExcludedRules: []
+        - Name: IpReputationList
+          Priority: 2
+          OverrideAction:
+            Count: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: IpReputationListMetric
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAmazonIpReputationList
+              ExcludedRules: []
+        - Name: AnonymousIpList
+          Priority: 3
+          OverrideAction:
+            Count: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AnonymousIpListMetric
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAnonymousIpList
+              ExcludedRules: []
+        - Name: BadInputsRuleSet
+          Priority: 4
+          OverrideAction:
+            Count: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: BadInputsRuleSetMetric
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+              ExcludedRules: []
+        - Name: AdminProtectionRuleSet
+          Priority: 5
+          OverrideAction:
+            Count: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AdminProtectionRuleSetMetric
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAdminProtectionRuleSet
+              ExcludedRules: []
+        - Name: BlockXssAttack
+          Priority: 6
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: BlockXssAttackMetric
+          Statement:
+            XssMatchStatement:
+              FieldToMatch:
+                AllQueryArguments: {}
+              TextTransformations:
+                - Priority: 6
+                  Type: NONE
   # Crea WebAppBucketOriginAccessIdentity
   WebAppBucketOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: "access-identity-stack-tienda-nicolas-tobo.demo"  
-  
   # Distribucion de cloudformation
-  ProductosDistribution:
+  TiendaDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
+        WebACLId:
+          Fn::GetAtt: ProjectACL.Arn
         Origins:
         - DomainName: !Sub "stack-tienda-nicolas-tobo.demo.s3.${AWS::Region}.amazonaws.com"
           S3OriginConfig:
@@ -82,13 +191,10 @@ Resources:
             ResponsePagePath: /index.html
         DefaultCacheBehavior:
           AllowedMethods:
-            - POST
-            - PUT
             - GET
             - HEAD
             - OPTIONS
           CachedMethods:
-            - POST
             - GET
             - HEAD
             - OPTIONS
@@ -101,10 +207,6 @@ Resources:
               - Access-Control-Request-Method
               - Access-Control-Request-Headers
           ViewerProtocolPolicy: redirect-to-https
-          LambdaFunctionAssociations:
-            - EventType: "origin-response"
-              LambdaFunctionARN:
-                Ref: VersionedLambdaFunction
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
         HttpVersion: http2
@@ -550,3 +652,6 @@ Outputs:
   DynamoDBTableName:
     Description: DynamoDBTable created inside the template
     Value: !Ref DynamoDBTable
+  WebAppBase:
+    Value: !Sub "https://${TiendaDistribution.DomainName}"
+    Description: Base url portion of the web application
