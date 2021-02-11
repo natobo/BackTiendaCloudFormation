@@ -1,0 +1,491 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Items Management CloudFormation template 
+  It deploys:
+      - DynamoDB table
+      - API Gateway with two endpoints (1 for uploading images and the other one is the crud of the items)
+      - 2 Lambda functions
+      - 1 s3 bucket (upload images)
+      - Associated IAM roles
+      - Cognito Identity Pool
+Resources:
+  #Cognito Identity Pool usado para la autenticacion de usuarios
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes:
+        - email
+      UserPoolName: !Sub ${CognitoDomain}-user-pool
+      UsernameAttributes: 
+        - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true
+  # Crea un cliente para la aplicacion del userpool
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - http://localhost:3000
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthScopes:
+        - phone
+        - email
+        - openid
+        - profile
+      SupportedIdentityProviders:
+        - COGNITO
+  # Asigna un dominio a el userPool de cognito      
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomain
+      UserPoolId: !Ref UserPool
+  # Bucket s3 para guardar las imagenes
+  S3BucketImg:
+    Type: AWS::S3::Bucket
+    Properties: 
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: false
+        BlockPublicPolicy: true
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: true
+      BucketName: 
+        Ref: BucketS3Name
+      CorsConfiguration: 
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - HEAD
+            AllowedOrigins:
+              - '*'
+            Id: myCORSRuleId1
+  #Funcion lambda para obtener un URL firmado para guardar las imagenes dentro de un bucket s3
+  LambdaFunctionSign:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+       # Codigo JS que maneja la creación de URL firmados por el bucket s3 para
+        ZipFile: |
+          const AWS = require('aws-sdk'); 
+          const S3_BUCKET = process.env.bucket;
+          exports.handler = function(event,context,callback) {
+              const s3 = new AWS.S3();  // Crea una nueva instancia s3
+              const fileName = event.fileName;
+              const fileType = event.fileType;
+              // Configure la carga útil de lo que enviamos a la api de S3
+              const s3Params = {
+               Bucket: S3_BUCKET,
+               Key: fileName,
+               Expires: 500,
+               ContentType: fileType,
+               ACL: 'public-read'
+              };
+              // Realizamos una solicitud a la API de S3 para obtener una URL firmada que podamos usar para cargar nuestro archivo
+              s3.getSignedUrl('putObject', s3Params, (err, data) => {
+                  if(err){
+                        console.log(err);
+                        return callback(null,JSON.stringify({success: false, error: err}))
+                  }
+                  // Carga de datos de lo que estamos enviando, la url de la FirmRequest y una URL donde podemos acceder al contenido después de que se guarde.
+                  const returnData = {
+                       signedRequest: data,
+                       url: `https://${S3_BUCKET}.s3.amazonaws.com/${fileName}`
+                  };
+                  // Send it all back
+                  return callback(null,JSON.stringify({success:true, data:{returnData}}));
+              });
+          };
+      FunctionName:
+        Ref: LambdaSignFuncName
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Role: !GetAtt IAMRoleFunctionSign.Arn
+      Environment:
+        Variables:
+          bucket: !Ref S3BucketImg
+    DependsOn:
+      - S3BucketImg
+  # Funcion Lambda que a partir de un post con parametros de una operacion realiza CRUD de los productos
+  LambdaFunctionCrud:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+      # Codigo JS que maneja un crud a partir de peticiones Post y un parametro "operation"
+        ZipFile: |
+          console.log('Loading DynamoDB Lambda function');
+          var AWS = require('aws-sdk');
+          var dynamo = new AWS.DynamoDB.DocumentClient();
+          exports.handler = function(event, context, callback) {
+          //console.log('Received event:', JSON.stringify(event, null, 2));
+          var operation = event.operation;
+          if (event.tableName) {
+            event.payload.TableName = event.tableName;
+          }
+          switch (operation) {
+                case 'create':
+                    dynamo.put(event.payload, callback);
+                    break;
+                case 'read':
+                    dynamo.get(event.payload, callback);
+                    break;
+                case 'update':
+                    dynamo.update(event.payload, callback);
+                    break;
+                case 'delete':
+                    dynamo.delete(event.payload, callback);
+                    break;
+                case 'list':
+                    dynamo.scan(event.payload, callback);
+                    break;
+                default:
+                    callback('Unknown operation: ${operation}');
+          }
+          };
+      FunctionName:
+        Ref: LambdaCrudFuncName
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Role: !GetAtt IAMRoleFunctionCrud.Arn
+    DependsOn:
+      - DynamoDBTable
+  #Configuracion de la dynamoDB    
+  DynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        Ref: DynamoDBTableName
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: '5'
+        WriteCapacityUnits: '5'
+    DependsOn:
+      - IAMRoleFunctionCrud
+  # Declaracion del API Gateway    
+  APIGatewayRestAPI:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name:
+        Ref: APIName
+    DependsOn:
+      - LambdaFunctionCrud
+      - LambdaFunctionSign
+  # Declaracion del recurso para retornar la peticion de una url firmada para subir imagenes dentro del api gateway    
+  APIGatewayResourceSign:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref APIGatewayRestAPI
+      ParentId: !GetAtt
+        - APIGatewayRestAPI
+        - RootResourceId
+      PathPart:
+        Ref: LambdaSignFuncName
+    DependsOn:
+      - APIGatewayRestAPI
+  # Declaracion del recurso para el crud de items dentro del api gateway    
+  APIGatewayResourceCrud:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref APIGatewayRestAPI
+      ParentId: !GetAtt
+        - APIGatewayRestAPI
+        - RootResourceId
+      PathPart:
+        Ref: LambdaCrudFuncName
+    DependsOn:
+      - APIGatewayRestAPI
+  # Declaracion del metodo POST para crear url firmadas y dentro de este metodo se agregan los headers para permitir el flujo de CORS
+  APIGatewayMethodSign:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref APIGatewayRestAPI
+      ResourceId: !Ref APIGatewayResourceSign
+      HttpMethod: POST
+      AuthorizationType: NONE
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Origin: false
+      Integration:
+        Type: AWS
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - >-
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaSignFuncNameArn}/invocations
+          - LambdaSignFuncNameArn: !GetAtt LambdaFunctionSign.Arn
+    DependsOn:
+      - APIGatewayResourceSign  
+  # Declaracion del metodo POST para el crud de items y dentro de este metodo se agregan los headers para permitir el flujo de CORS
+  APIGatewayMethodCrud:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref APIGatewayRestAPI
+      ResourceId: !Ref APIGatewayResourceCrud
+      HttpMethod: POST
+      AuthorizationType: NONE
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Origin: false
+      Integration:
+        Type: AWS
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - >-
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaCrudFuncNameArn}/invocations
+          - LambdaCrudFuncNameArn: !GetAtt LambdaFunctionCrud.Arn
+    DependsOn:
+      - APIGatewayResourceCrud
+  # Declaracion del metodo OPTIONS que habilita CORS para el recurso APIGatewayResourceSign
+  OptionsMethodSign:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref APIGatewayRestAPI
+      ResourceId: !Ref APIGatewayResourceSign
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+    DependsOn:
+      - APIGatewayResourceSign
+  # Declaracion del metodo OPTIONS que habilita CORS para el recurso APIGatewayResourceCrud
+  OptionsMethodCrud:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref APIGatewayRestAPI
+      ResourceId: !Ref APIGatewayResourceCrud
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+    DependsOn:
+      - APIGatewayResourceCrud
+  # Declaracion de instrucciones de despliegue   
+  APIGatewayDeployment:
+    Type: 'AWS::ApiGateway::Deployment'
+    Properties:
+      RestApiId: !Ref APIGatewayRestAPI
+      StageName:
+        Ref: EnvironmentName
+    DependsOn:
+      - APIGatewayMethodCrud
+      - APIGatewayMethodSign
+  # Declaracion de los permisos de la funcion lambda dentro del api gateway para usar el crud de items
+  APIGatewayPermissionSign:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt LambdaFunctionSign.Arn
+      Principal: apigateway.amazonaws.com
+    DependsOn:
+      - APIGatewayDeployment
+  # Declaracion de los permisos de la funcion lambda dentro del api gateway para usar el crud de items
+  APIGatewayPermissionCrud:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt LambdaFunctionCrud.Arn
+      Principal: apigateway.amazonaws.com
+    DependsOn:
+      - APIGatewayDeployment
+  # Declaracion del rol IAM para que la funcion lambda pueda escribir sobre la DynamoDB    
+  IAMRoleFunctionCrud:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: Policy_api-lambda-db
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:BatchWriteItem'
+                  - 'dynamodb:TagResource'
+                  - 'dynamodb:UntagResource'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:UpdateItem'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+  # Declaracion del rol IAM para que la funcion lambda pueda guardar imagenes dentro del s3   
+  IAMRoleFunctionSign:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: Policy_api-lambda-s3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:GetObject'
+                  - 's3:PutObjectAcl'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutLogEvents'
+                Resource: '*'              
+#Parametros dados por el template
+Parameters:
+  CognitoDomain:
+    Type: String
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: ^[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?$
+    Default: userpool-tienda-nicotobo
+    Description: Enter a string. Must be alpha numeric 3-63 in length.
+  LambdaSignFuncName:
+    Type: String
+    Description: name of the lambda function that sign a URL of a s3 bucket for upload images
+    Default: Lambda_api-lambda-s3-tiendaback-nicotobo
+  LambdaCrudFuncName:
+    Type: String
+    Description: name of the lambda function that enables a crud for upload items
+    Default: Lambda_api-lambda-db-tiendaback-nicotobo
+  BucketS3Name:
+    Type: String
+    Description: the bucket s3 name for upload images (IT CANT HAVE UPPERCASE CHARACTERS)
+    Default: bucket-api-lambda-db-tiendaback-nicotobo
+  DynamoDBTableName:
+    Type: String
+    Description: the name of the dynamo db table
+    Default: Dynamo_api-lambda-db-tiendaback-nicotobo
+  APIName:
+    Type: String
+    Description: the name of the api gateway to create
+    Default: API_api-lambda-db-tiendaback-nicotobo
+  EnvironmentName:
+    Type: String
+    Description: the name of the enviroment for the api gateway
+    Default: Prod
+  RegionName:
+    Type: String
+    Description: the region name where the stack is going to be deployed
+    Default: us-east-1
+# Muestra los recursos creados como Outputs del Stack
+Outputs:
+  BucketS3Name:
+    Description: Bucket S3 resource
+    Value: !Ref S3BucketImg
+  CognitoUserPoolID:
+    Value: !Ref UserPool
+    Description: The UserPool ID
+  CognitoAppClientID:
+    Value: !Ref UserPoolClient
+    Description: The App client id of the cognito service
+  JavascriptFunctionName:
+    Description: AWS Lambda Javascript Function
+    Value: !Ref LambdaFunctionCrud
+  APIGatewayRestAPICrudOutput:
+    Description: Invocation link of the Crud Api Gateway
+    Value: !Sub https://${APIGatewayRestAPI}.execute-api.${RegionName}.amazonaws.com/${EnvironmentName}/${LambdaCrudFuncName}
+  APIGatewayRestAPIImgOutput:
+    Description: Invocation link of the signed url for uploading images Api Gateway
+    Value: !Sub https://${APIGatewayRestAPI}.execute-api.${RegionName}.amazonaws.com/${EnvironmentName}/${LambdaSignFuncName}
+  DynamoDBTableName:
+    Description: DynamoDBTable created inside the template
+    Value: !Ref DynamoDBTable
