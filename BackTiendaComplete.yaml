@@ -163,7 +163,7 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: "access-identity-stack-tienda-nicolas-tobo.demo"  
-  # Distribucion de cloudfront
+  # Distribucion de cloudfront, en este s3: stack-tienda-nicolas-tobo.demo.s3 se encuentra toda la pagina con y tiene acceso publico
   TiendaDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
